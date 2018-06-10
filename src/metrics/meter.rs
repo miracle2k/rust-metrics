@@ -39,6 +39,8 @@ pub struct StdMeter {
 pub trait Meter: Send + Sync {
     fn snapshot(&self) -> MeterSnapshot;
 
+    fn snapshot_and_clear(&self) -> MeterSnapshot;
+
     fn mark(&self, n: i64);
 
     fn tick(&self);
@@ -51,6 +53,7 @@ pub trait Meter: Send + Sync {
 }
 
 impl Meter for StdMeter {
+
     fn snapshot(&self) -> MeterSnapshot {
         let mut s = self.data.lock().unwrap();
         self.tick_inner(&mut s);
@@ -60,6 +63,21 @@ impl Meter for StdMeter {
             rates: [s.ewma[0].rate(), s.ewma[1].rate(), s.ewma[2].rate()],
             mean: self.mean_inner(&s),
         }
+    }
+
+    fn snapshot_and_clear(&self) -> MeterSnapshot {
+        let mut s = self.data.lock().unwrap();
+        self.tick_inner(&mut s);
+
+        let result = MeterSnapshot {
+            count: s.count,
+            rates: [s.ewma[0].rate(), s.ewma[1].rate(), s.ewma[2].rate()],
+            mean: self.mean_inner(&s),
+        };
+
+        s.count = 0;
+
+        return result;
     }
 
     fn mark(&self, n: i64) {
