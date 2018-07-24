@@ -26,13 +26,13 @@ struct StdMeterData {
     count: i64,
     ewma: [EWMA; 3],
     next_tick: Instant,
+    start: Instant,
 }
 
 // A StdMeter struct
 #[derive(Debug)]
 pub struct StdMeter {
-    data: Mutex<StdMeterData>,
-    start: Instant,
+    data: Mutex<StdMeterData>
 }
 
 // A Meter trait
@@ -76,6 +76,7 @@ impl Meter for StdMeter {
         };
 
         s.count = 0;
+        s.start = Instant::now();
 
         return result;
     }
@@ -129,7 +130,7 @@ impl StdMeter {
         if s.count == 0 {
             0.
         } else {
-            let dur = self.start.elapsed();
+            let dur = s.start.elapsed();
             let nanos = dur.as_secs() * NANOS_PER_SEC + dur.subsec_nanos() as u64;
             s.count as f64 / nanos as f64 * NANOS_PER_SEC as f64
         }
@@ -155,8 +156,8 @@ impl Default for StdMeter {
                 count: 0,
                 ewma: [EWMA::new(1.0), EWMA::new(5.0), EWMA::new(15.0)],
                 next_tick: now + Duration::from_secs(TICK_RATE_SECS),
+                start: now,
             }),
-            start: now,
         }
     }
 }
